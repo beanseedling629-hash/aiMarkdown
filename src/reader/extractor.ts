@@ -31,8 +31,14 @@ export function extractArticle(): ArticleResult | null {
         || img.getAttribute('data-original')
         || img.getAttribute('data-actualsrc')
         || img.getAttribute('data-lazy-src')
-      if (lazySrc && (!img.src || img.src.includes('placeholder') || img.src.includes('data:image'))) {
-        img.setAttribute('src', lazySrc)
+      if (lazySrc) {
+        const currentSrc = img.getAttribute('src') || ''
+        // Replace if src is empty, a placeholder, data URI, or a tiny tracking pixel
+        if (!currentSrc || currentSrc.length < 10 || currentSrc.includes('placeholder')
+          || currentSrc.startsWith('data:') || currentSrc.includes('1x1')
+          || currentSrc.includes('blank')) {
+          img.setAttribute('src', lazySrc)
+        }
       }
     })
 
