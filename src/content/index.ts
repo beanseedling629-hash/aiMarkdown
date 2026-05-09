@@ -1,6 +1,6 @@
 import { renderMarkdown } from '../core/renderer'
 import { buildTOC, initTOCCollapse } from '../core/toc'
-import { initTheme, toggleTheme, cycleSkin, getCurrentTheme, getCurrentSkin, Skin, getSettings, saveSettings, applySettings, Settings, FontFamily } from '../core/theme'
+import { initTheme, toggleTheme, cycleSkin, getCurrentTheme, getCurrentSkin, Skin, getSettings, saveSettings, applySettings, Settings, FontFamily, Layout } from '../core/theme'
 import { initScrollSync } from '../core/scroll-sync'
 import { resolveLocalImages } from '../core/image-resolver'
 
@@ -16,7 +16,7 @@ async function init() {
 
   const settings = getSettings()
   document.documentElement.innerHTML = buildPageHTML()
-  initTheme()
+  await initTheme()
 
   const contentEl = document.getElementById('md-content')!
   const { html, tocItems } = renderMarkdown(rawText)
@@ -99,6 +99,17 @@ function initSettingsPanel(settings: Settings, tocItems: { level: number; text: 
     s.fontFamily = fontSelect.value as FontFamily
     saveSettings(s)
   })
+
+  // Layout select
+  const layoutSelect = document.getElementById('layout-select') as HTMLSelectElement
+  if (layoutSelect) {
+    layoutSelect.value = settings.layout
+    layoutSelect.addEventListener('change', () => {
+      const s = getSettings()
+      s.layout = layoutSelect.value as Layout
+      saveSettings(s)
+    })
+  }
 }
 
 function updateIcons() {
@@ -170,6 +181,18 @@ function buildPageHTML(): string {
           </select>
         </div>
         <div class="settings-hint">系统默认 = 苹方/思源黑体</div>
+      </div>
+      <div class="settings-item">
+        <label class="settings-label">版式</label>
+        <div class="settings-control">
+          <select id="layout-select" class="settings-select">
+            <option value="compact">紧凑</option>
+            <option value="standard">标准</option>
+            <option value="comfortable">舒适</option>
+            <option value="wide">宽幅</option>
+          </select>
+        </div>
+        <div class="settings-hint">控制内容宽度和行距</div>
       </div>
     </div>
     <div class="md-body">

@@ -65,10 +65,20 @@ const md = MarkdownIt({
   typographer: true,
   breaks: false,
   highlight(str: string, lang: string): string {
+    // If language specified and available, use it
     if (lang && hljs.getLanguage(lang)) {
       try {
         const highlighted = hljs.highlight(str, { language: lang, ignoreIllegals: true })
         return `<pre class="hljs"><code class="language-${lang}">${highlighted.value}</code></pre>`
+      } catch (_) { /* fallback */ }
+    }
+    // Auto-detect language when not specified
+    if (!lang && str.trim().length > 0) {
+      try {
+        const result = hljs.highlightAuto(str)
+        if (result.language) {
+          return `<pre class="hljs"><code class="language-${result.language}">${result.value}</code></pre>`
+        }
       } catch (_) { /* fallback */ }
     }
     return `<pre class="hljs"><code>${md.utils.escapeHtml(str)}</code></pre>`

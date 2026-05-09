@@ -1,9 +1,25 @@
 /**
  * Scroll Sync: Highlights the TOC item corresponding to the
  * currently visible heading. Auto-expands collapsed parents.
+ *
+ * Supports both normal document mode (local .md) and Shadow DOM mode (reader).
  */
-export function initScrollSync(tocContainer: HTMLElement): void {
-  const headings = document.querySelectorAll<HTMLElement>(
+
+export interface ScrollSyncOptions {
+  /** The root to query headings from (document or ShadowRoot) */
+  root?: Document | ShadowRoot
+  /** The scroll container to observe (window or a specific element) */
+  scrollContainer?: HTMLElement | Window
+  /** Selector for the sidebar element (for scrolling TOC into view) */
+  sidebarSelector?: string
+}
+
+export function initScrollSync(tocContainer: HTMLElement, options: ScrollSyncOptions = {}): void {
+  const root = options.root || document
+  const scrollContainer = options.scrollContainer || window
+  const sidebarSelector = options.sidebarSelector || '#md-sidebar'
+
+  const headings = root.querySelectorAll<HTMLElement>(
     '.md-article h1[id], .md-article h2[id], .md-article h3[id], .md-article h4[id], .md-article h5[id], .md-article h6[id]'
   )
 
@@ -17,6 +33,9 @@ export function initScrollSync(tocContainer: HTMLElement): void {
   })
 
   const visibleHeadings = new Set<string>()
+
+  // Determine the IntersectionObserver root element
+  const observerRoot = scrollContainer instanceof HTMLElement ? scrollContainer : null
 
   const observer = new IntersectionObserver(
     (entries) => {
@@ -38,11 +57,12 @@ export function initScrollSync(tocContainer: HTMLElement): void {
         }
       }
 
-      // Fallback: find the last heading above viewport
+      // Fallback: find the last heading above scroll position
       if (!activeId) {
-        const scrollTop = window.scrollY
+        const scrollTop = getScrollTop(scrollContainer)
         for (let i = headings.length - 1; i >= 0; i--) {
-          if (headings[i].offsetTop <= scrollTop + 100) {
+          const headingTop = getElementTop(headings[i], scrollContainer)
+          if (headingTop <= scrollTop + 100) {
             activeId = headings[i].id
             break
           }
@@ -52,16 +72,20 @@ export function initScrollSync(tocContainer: HTMLElement): void {
       // Update active state
       if (activeId) {
         tocLinks.forEach(link => link.classList.remove('active'))
+        tocContainer.querySelectorAll('.toc-row.active').forEach(row => row.classList.remove('active'))
+
         const activeLink = tocMap.get(activeId)
         if (activeLink) {
           activeLink.classList.add('active')
-          // Auto-expand parent if item is hidden
+          const row = activeLink.closest('.toc-row')
+          if (row) row.classList.add('active')
           autoExpandParent(activeLink, tocContainer)
-          scrollTocIntoView(activeLink, tocContainer)
+          scrollTocIntoView(activeLink, root, sidebarSelector)
         }
       }
     },
     {
+      root: observerRoot,
       rootMargin: '-60px 0px -70% 0px',
       threshold: 0,
     }
@@ -75,7 +99,8 @@ export function initScrollSync(tocContainer: HTMLElement): void {
       e.preventDefault()
       const id = link.getAttribute('data-id')
       if (!id) return
-      const target = document.getElementById(id)
+      // Find target in the correct root (document or shadow)
+      const target = root.querySelector(`#${CSS.escape(id)}`) as HTMLElement | null
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }
@@ -83,27 +108,30 @@ export function initScrollSync(tocContainer: HTMLElement): void {
   })
 }
 
-/**
- * If the active TOC item is hidden (inside a collapsed parent),
- * expand its parent chain so it becomes visible.
- */
+function getScrollTop(container: HTMLElement | Window): number {
+  if (container instanceof Window) return window.scrollY
+  return container.scrollTop
+}
+
+function getElementTop(el: HTMLElement, container: HTMLElement | Window): number {
+  if (container instanceof Window) return el.offsetTop
+  return el.offsetTop - container.offsetTop
+}
+
 function autoExpandParent(link: HTMLElement, tocContainer: HTMLElement): void {
   const li = link.closest('.toc-item') as HTMLElement | null
   if (!li || !li.classList.contains('toc-hidden')) return
 
-  // Walk backward through items to find the parent that is collapsed
   const items = Array.from(tocContainer.querySelectorAll<HTMLElement>('.toc-item'))
   const index = items.indexOf(li)
   if (index < 0) return
 
   const myLevel = parseInt(li.dataset.level || '1')
 
-  // Find the closest ancestor (lower level) that is visible
   for (let i = index - 1; i >= 0; i--) {
     const ancestor = items[i]
     const ancestorLevel = parseInt(ancestor.dataset.level || '1')
     if (ancestorLevel < myLevel && !ancestor.classList.contains('toc-hidden')) {
-      // Click its toggle to expand
       const toggle = ancestor.querySelector('.toc-toggle') as HTMLElement | null
       if (toggle && !toggle.classList.contains('expanded')) {
         toggle.click()
@@ -113,21 +141,22 @@ function autoExpandParent(link: HTMLElement, tocContainer: HTMLElement): void {
   }
 }
 
-function scrollTocIntoView(link: HTMLElement, _container: HTMLElement): void {
-  const sidebar = document.getElementById('md-sidebar')
+function scrollTocIntoView(
+  link: HTMLElement,
+  root: Document | ShadowRoot,
+  sidebarSelector: string
+): void {
+  const sidebar = root.querySelector(sidebarSelector) as HTMLElement | null
   if (!sidebar) return
 
   const linkRect = link.getBoundingClientRect()
   const sidebarRect = sidebar.getBoundingClientRect()
 
-  // If active link is outside sidebar's visible area, scroll it into view
   const isAbove = linkRect.top < sidebarRect.top + 10
   const isBelow = linkRect.bottom > sidebarRect.bottom - 10
 
   if (isAbove || isBelow) {
-    // Calculate where the link is relative to sidebar's scroll area
     const linkTop = linkRect.top - sidebarRect.top + sidebar.scrollTop
-    // Scroll so the active item is at ~1/3 from the top
     const target = linkTop - sidebar.clientHeight / 3
     sidebar.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
   }

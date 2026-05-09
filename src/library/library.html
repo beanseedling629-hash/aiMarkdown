@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>阅读列表 - AI Markdown Viewer</title>
+  <script type="module" src="./library.ts"></script>
+</head>
+<body data-theme="light" data-skin="paper">
+  <div id="app">
+    <header class="header">
+      <div class="header-left">
+        <h1 class="logo">📖 阅读列表</h1>
+      </div>
+      <div class="header-right">
+        <input type="text" id="search-input" class="search-input" placeholder="搜索文章..." />
+      </div>
+    </header>
+
+    <div class="main-layout">
+      <!-- Sidebar: Groups -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">分组</div>
+        <ul class="group-list" id="group-list"></ul>
+        <button class="add-group-btn" id="add-group-btn">+ 新建分组</button>
+      </aside>
+
+      <!-- Article List -->
+      <main class="content" id="article-list-container">
+        <div class="article-list" id="article-list"></div>
+        <div class="empty-state" id="empty-state" style="display:none">
+          <div class="empty-icon">📚</div>
+          <p>还没有保存的文章</p>
+          <p class="empty-hint">在网页上按 <kbd>aa</kbd> 进入阅读模式，点击"保存"即可收藏文章</p>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

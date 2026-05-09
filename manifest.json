@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "Markdown Viewer",
-  "version": "1.0.0",
-  "description": "Beautiful Markdown file viewer with TOC, dark mode, and folder browsing",
-  "permissions": ["activeTab", "tabs"],
+  "name": "AI Markdown Viewer",
+  "version": "1.1.0",
+  "description": "Markdown viewer + Web page reading mode with save to Markdown",
+  "permissions": ["activeTab", "tabs", "scripting", "downloads", "storage"],
+  "host_permissions": ["http://*/*", "https://*/*", "file:///*"],
   "icons": {
     "16": "public/icon-16.png",
     "48": "public/icon-48.png",
@@ -11,10 +12,8 @@
   },
   "content_scripts": [
     {
-      "matches": ["file:///*"],
-      "include_globs": ["*.md", "*.markdown", "*.mdown", "*.mkdn", "*.mkd"],
-      "js": ["src/content/index.ts"],
-      "css": [],
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["src/content/hotkey.ts"],
       "run_at": "document_end"
     }
   ],
@@ -26,6 +25,15 @@
     "default_icon": {
       "16": "public/icon-16.png",
       "48": "public/icon-48.png"
+    }
+  },
+  "commands": {
+    "toggle-reading-mode": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+R",
+        "mac": "Command+Shift+R"
+      },
+      "description": "Toggle reading mode on current page"
     }
   },
   "web_accessible_resources": [

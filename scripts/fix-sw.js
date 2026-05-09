@@ -6,13 +6,16 @@ import { join, dirname } from 'path'
 
 const distDir = 'dist'
 
-// 1. Copy manifest.json to dist
+// 1. Generate manifest.json for dist
+// NOTE: No content_scripts for file:// — we use programmatic injection
+// from the background service worker (same approach as Markdown Viewer 5.3)
 const manifest = {
   manifest_version: 3,
-  name: "Markdown Viewer",
-  version: "1.0.0",
-  description: "Beautiful Markdown file viewer with TOC, dark mode, and folder browsing",
-  permissions: ["activeTab", "tabs"],
+  name: "AI Markdown Viewer",
+  version: "1.1.0",
+  description: "Markdown viewer + Web page reading mode with save to Markdown",
+  permissions: ["activeTab", "tabs", "scripting", "downloads", "storage", "unlimitedStorage"],
+  host_permissions: ["http://*/*", "https://*/*", "file:///*"],
   icons: {
     "16": "icons/icon-16.png",
     "48": "icons/icon-48.png",
@@ -20,9 +23,8 @@ const manifest = {
   },
   content_scripts: [
     {
-      matches: ["file:///*"],
-      include_globs: ["*.md", "*.markdown", "*.mdown", "*.mkdn", "*.mkd"],
-      js: ["content.js"],
+      matches: ["http://*/*", "https://*/*"],
+      js: ["content-hotkey.js"],
       run_at: "document_end"
     }
   ],
@@ -34,6 +36,15 @@ const manifest = {
     default_icon: {
       "16": "icons/icon-16.png",
       "48": "icons/icon-48.png"
+    }
+  },
+  commands: {
+    "toggle-reading-mode": {
+      suggested_key: {
+        default: "Ctrl+Shift+R",
+        mac: "Command+Shift+R"
+      },
+      description: "Toggle reading mode on current page"
     }
   }
 }
@@ -51,34 +62,30 @@ for (const size of ['16', '48', '128']) {
 }
 
 // 3. Fix HTML files - move them to dist root and fix paths
-const popupSrc = join(distDir, 'popup.html') 
-const viewerSrc = join(distDir, 'viewer.html')
-
-// Fix popup.html if it exists in a subdirectory
-function findAndFixHtml(name) {
-  // Vite with HTML input puts them based on their input path
+function findAndFixHtml(name, subPaths) {
+  // Check sub-paths first (Vite outputs there), then dist root
   const possiblePaths = [
+    ...subPaths.map(p => join(distDir, p)),
     join(distDir, name + '.html'),
-    join(distDir, 'src', 'viewer', name === 'popup' ? 'popup.html' : 'index.html'),
   ]
   
   for (const p of possiblePaths) {
     if (existsSync(p)) {
       let content = readFileSync(p, 'utf-8')
-      // Fix absolute paths to relative
       content = content.replace(/(src|href)="\/assets\//g, '$1="assets/')
       content = content.replace(/(src|href)="\/([^"]+)"/g, '$1="$2"')
-      // Write to dist root
       const outPath = join(distDir, name + '.html')
       writeFileSync(outPath, content)
-      console.log(`  Fixed: ${p} → ${outPath}`)
+      if (p !== outPath) console.log(`  Fixed: ${p} → ${outPath}`)
+      else console.log(`  Fixed paths in: ${outPath}`)
       return
     }
   }
 }
 
-findAndFixHtml('popup')
-findAndFixHtml('viewer')
+findAndFixHtml('popup', ['src/viewer/popup.html'])
+findAndFixHtml('viewer', ['src/viewer/index.html'])
+findAndFixHtml('library', ['src/library/library.html'])
+findAndFixHtml('reader-page', ['src/reader-page/reader-page.html'])
 
-// 4. Remove extra directories
 console.log('✅ Build post-processing complete')

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <style>
@@ -8,6 +8,7 @@
       --text: #1a1a2e;
       --text-secondary: #495057;
       --accent: #228be6;
+      --accent-green: #40c057;
       --border: #e9ecef;
       --radius: 8px;
     }
@@ -17,32 +18,28 @@
         --text: #f1f5f9;
         --text-secondary: #94a3b8;
         --accent: #38bdf8;
+        --accent-green: #4ade80;
         --border: #334155;
       }
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      width: 320px;
-      padding: 20px;
+      width: 280px;
+      padding: 16px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg);
       color: var(--text);
     }
-    h1 {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .subtitle {
-      font-size: 12px;
-      color: var(--text-secondary);
-      margin-bottom: 16px;
-    }
+    h1 { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+    .subtitle { font-size: 11px; color: var(--text-secondary); margin-bottom: 14px; }
+    .btn-group { display: flex; flex-direction: column; gap: 8px; }
     .btn {
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 8px;
       width: 100%;
-      padding: 10px 16px;
-      font-size: 14px;
+      padding: 10px 14px;
+      font-size: 13px;
       font-weight: 500;
       color: white;
       background: var(--accent);
@@ -51,23 +48,47 @@
       cursor: pointer;
       transition: opacity 0.2s;
     }
-    .btn:hover { opacity: 0.9; }
+    .btn:hover { opacity: 0.88; }
+    .btn-green { background: var(--accent-green); }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { background: var(--border); opacity: 1; }
+    .btn svg { flex-shrink: 0; }
     .info {
       margin-top: 12px;
       font-size: 11px;
       color: var(--text-secondary);
       line-height: 1.5;
     }
+    kbd {
+      background: var(--border);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
   </style>
 </head>
 <body>
-  <h1>Markdown Viewer</h1>
-  <p class="subtitle">Open .md files in Chrome with beautiful rendering</p>
-  <button class="btn" id="open-folder">Open Folder</button>
-  <p class="info">
-    Tip: You can also directly open any .md file via <code>file://</code> protocol.
-    Make sure to enable "Allow access to file URLs" in extension settings.
-  </p>
+  <h1>📖 AI Markdown Viewer</h1>
+  <p class="subtitle">阅读模式 + Markdown 渲染器</p>
+  <div class="btn-group">
+    <button class="btn" id="btn-reading-mode">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      阅读模式
+    </button>
+    <button class="btn btn-green" id="btn-library">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      阅读列表
+    </button>
+    <button class="btn btn-outline" id="btn-folder">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      浏览本地文件夹
+    </button>
+  </div>
+  <p class="info">快捷键：在网页按 <kbd>aa</kbd> 进入阅读模式</p>
   <script type="module" src="./popup.ts"></script>
 </body>
 </html>
