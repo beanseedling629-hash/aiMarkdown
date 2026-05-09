@@ -31,9 +31,6 @@ async function main() {
   const loading = showLoading()
 
   try {
-    // Pre-scroll to trigger lazy-loaded images (SPA sites like Juejin)
-    await triggerLazyImages()
-
     // Step 1: Extract the article
     const article = extractArticle()
     if (!article) {
@@ -337,26 +334,4 @@ function showNotification(msg: string) {
   div.textContent = msg
   document.body.appendChild(div)
   setTimeout(() => div.remove(), 3000)
-}
-
-/**
- * Quickly scroll through the page to trigger lazy-loaded images.
- * Many SPA sites (Juejin, Zhihu) only create <img> elements when scrolled into view.
- */
-async function triggerLazyImages(): Promise<void> {
-  const scrollHeight = document.body.scrollHeight
-  const viewHeight = window.innerHeight
-  const originalScroll = window.scrollY
-
-  // Quick scroll in chunks to trigger IntersectionObserver-based lazy loaders
-  for (let y = 0; y < scrollHeight; y += viewHeight) {
-    window.scrollTo(0, y)
-    await new Promise(r => setTimeout(r, 50))
-  }
-
-  // Scroll back to original position
-  window.scrollTo(0, originalScroll)
-
-  // Wait a bit for images to load into DOM
-  await new Promise(r => setTimeout(r, 200))
 }
