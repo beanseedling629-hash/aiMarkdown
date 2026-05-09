@@ -53,7 +53,6 @@ async function main() {
     const originalTitle = document.title
 
     // Replace entire page with MD viewer
-    const settings = getSettings()
     document.documentElement.innerHTML = buildReaderPageHTML(article.title)
 
     // Inject styles
@@ -63,6 +62,7 @@ async function main() {
 
     // Init theme (async - loads from chrome.storage)
     await initTheme()
+    const settings = getSettings()
 
     // Render markdown
     const contentEl = document.getElementById('md-content')!

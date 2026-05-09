@@ -17,8 +17,8 @@ export interface Settings {
 const DEFAULT_SETTINGS: Settings = {
   zoom: 1.0,
   tocDepth: 2,
-  fontFamily: 'system',
-  layout: 'comfortable',
+  fontFamily: 'mono',
+  layout: 'wide',
 }
 
 // In-memory cache (loaded from chrome.storage on init)

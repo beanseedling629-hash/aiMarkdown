@@ -14,9 +14,9 @@ async function init() {
   const rawText = pre?.textContent || document.body.innerText || ''
   if (!rawText.trim()) return
 
-  const settings = getSettings()
   document.documentElement.innerHTML = buildPageHTML()
   await initTheme()
+  const settings = getSettings()
 
   const contentEl = document.getElementById('md-content')!
   const { html, tocItems } = renderMarkdown(rawText)

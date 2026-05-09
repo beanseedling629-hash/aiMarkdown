@@ -68,10 +68,10 @@ async function init() {
   document.title = title
 
   // Build the page — identical to content/index.ts
-  const settings = getSettings()
   document.documentElement.innerHTML = buildPageHTML(title, isTemp)
   injectStyles()
   await initTheme()
+  const settings = getSettings()
 
   // Render markdown
   const contentEl = document.getElementById('md-content')!
