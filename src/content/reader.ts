@@ -103,6 +103,13 @@ async function main() {
       window.location.reload()
     })
 
+    // ESC to exit reading mode
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        window.location.reload()
+      }
+    })
+
     // Save button
     document.getElementById('save-btn')!.addEventListener('click', async () => {
       const btn = document.getElementById('save-btn')!

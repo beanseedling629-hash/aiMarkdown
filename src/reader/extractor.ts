@@ -24,6 +24,18 @@ export function extractArticle(): ArticleResult | null {
     // Clone document to prevent Readability from mutating original DOM
     const doc = document.cloneNode(true) as Document
 
+    // Fix lazy-loaded images: restore data-src/data-original to src
+    const imgs = doc.querySelectorAll('img')
+    imgs.forEach(img => {
+      const lazySrc = img.getAttribute('data-src')
+        || img.getAttribute('data-original')
+        || img.getAttribute('data-actualsrc')
+        || img.getAttribute('data-lazy-src')
+      if (lazySrc && (!img.src || img.src.includes('placeholder') || img.src.includes('data:image'))) {
+        img.setAttribute('src', lazySrc)
+      }
+    })
+
     // Remove script and style elements from clone for cleaner extraction
     const scripts = doc.querySelectorAll('script, style, noscript, svg')
     scripts.forEach(el => el.remove())
