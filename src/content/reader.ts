@@ -45,6 +45,18 @@ async function main() {
     const titleLine = titleToMarkdown(article.title)
     const metadata = metadataToMarkdown(article)
     const markdown = titleLine + metadata + markdownBody
+
+    // Debug: log image info
+    const tmpDiv = document.createElement('div')
+    tmpDiv.innerHTML = article.content
+    const imgCount = tmpDiv.querySelectorAll('img').length
+    const mdImgCount = (markdown.match(/!\[.*?\]\(.*?\)/g) || []).length
+    console.log(`[Reader] Article extracted: ${imgCount} img tags in HTML, ${mdImgCount} images in MD`)
+    if (imgCount > 0) {
+      tmpDiv.querySelectorAll('img').forEach((img, i) => {
+        console.log(`[Reader] img[${i}]: src="${img.getAttribute('src')?.slice(0, 80)}" data-src="${img.getAttribute('data-src')?.slice(0, 80)}"`)
+      })
+    }
     const pageUrl = window.location.href
 
     loading.remove()

@@ -24,29 +24,48 @@ export function extractArticle(): ArticleResult | null {
     // Clone document to prevent Readability from mutating original DOM
     const doc = document.cloneNode(true) as Document
 
-    // Fix lazy-loaded images: restore data-src/data-original/srcset to src
+    // Fix lazy-loaded images: check all attributes for image URLs
     const imgs = doc.querySelectorAll('img')
     imgs.forEach(img => {
-      const lazySrc = img.getAttribute('data-src')
-        || img.getAttribute('data-original')
-        || img.getAttribute('data-actualsrc')
-        || img.getAttribute('data-lazy-src')
-      if (lazySrc) {
-        const currentSrc = img.getAttribute('src') || ''
-        if (!currentSrc || currentSrc.length < 10 || currentSrc.includes('placeholder')
-          || currentSrc.startsWith('data:') || currentSrc.includes('1x1')
-          || currentSrc.includes('blank')) {
-          img.setAttribute('src', lazySrc)
-        }
-      }
-      // If still no valid src, try srcset
       const currentSrc = img.getAttribute('src') || ''
-      if ((!currentSrc || currentSrc.length < 10 || currentSrc.startsWith('data:')) && !lazySrc) {
+      const needsFix = !currentSrc || currentSrc.length < 10
+        || currentSrc.includes('placeholder') || currentSrc.startsWith('data:')
+        || currentSrc.includes('1x1') || currentSrc.includes('blank')
+
+      if (needsFix) {
+        // Try common lazy-load attributes
+        const lazySrc = img.getAttribute('data-src')
+          || img.getAttribute('data-original')
+          || img.getAttribute('data-actualsrc')
+          || img.getAttribute('data-lazy-src')
+          || img.getAttribute('data-original-src')
+
+        if (lazySrc) {
+          img.setAttribute('src', lazySrc)
+          return
+        }
+
+        // Try srcset
         const srcset = img.getAttribute('srcset') || ''
         if (srcset) {
           const urls = srcset.split(',').map(s => s.trim().split(/\s+/)[0])
           const best = urls[urls.length - 1]
-          if (best) img.setAttribute('src', best)
+          if (best) { img.setAttribute('src', best); return }
+        }
+
+        // Brute force: scan all attributes for anything that looks like an image URL
+        for (const attr of Array.from(img.attributes)) {
+          if (attr.name === 'src' || attr.name === 'alt' || attr.name === 'class'
+            || attr.name === 'style' || attr.name === 'width' || attr.name === 'height') continue
+          if (attr.value && /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg|avif)/i.test(attr.value)) {
+            img.setAttribute('src', attr.value)
+            break
+          }
+          // Also match CDN URLs without extension (e.g. byteimg.com/tos-cn-...)
+          if (attr.value && /^https?:\/\/.*(byteimg|cloudinary|imgur|cdn|image|img|photo|pic)/i.test(attr.value)) {
+            img.setAttribute('src', attr.value)
+            break
+          }
         }
       }
     })
