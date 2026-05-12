@@ -3,6 +3,7 @@ import { buildTOC, initTOCCollapse } from '../core/toc'
 import { initTheme, toggleTheme, cycleSkin, getCurrentTheme, getCurrentSkin, Skin, getSettings, saveSettings, applySettings, Settings, FontFamily, Layout } from '../core/theme'
 import { initScrollSync } from '../core/scroll-sync'
 import { resolveLocalImages } from '../core/image-resolver'
+import { saveArticle, generateId, estimateReadTime } from '../storage/article-store'
 
 const url = window.location.href
 if (/^file:\/\/.*\.(md|markdown|mdown|mkdn|mkd)$/i.test(url)) {
@@ -45,14 +46,39 @@ async function init() {
 
   // Close settings panel when clicking outside
   document.addEventListener('click', (e) => {
-    const panel = document.getElementById('settings-panel')!
-    const btn = document.getElementById('settings-toggle')!
-    if (!panel.contains(e.target as Node) && !btn.contains(e.target as Node)) {
+    const panel = document.getElementById('settings-panel')
+    const btn = document.getElementById('settings-toggle')
+    if (panel && btn && !panel.contains(e.target as Node) && !btn.contains(e.target as Node)) {
       panel.classList.remove('open')
     }
   })
 
   initSettingsPanel(settings, tocItems)
+
+  // Save button — save local .md to reading list
+  const saveBtn = document.getElementById('save-btn')!
+  saveBtn.addEventListener('click', async () => {
+    saveBtn.textContent = '保存中...'
+    try {
+      await saveArticle({
+        id: generateId(),
+        title: getFileName().replace(/\.(md|markdown|mdown|mkdn|mkd)$/i, ''),
+        url,
+        savedAt: Date.now(),
+        markdown: rawText,
+        images: [],
+        group: 'unread',
+        excerpt: rawText.slice(0, 200).replace(/[#*_\[\]`]/g, ''),
+        readTime: estimateReadTime(rawText),
+      })
+      saveBtn.textContent = '✓ 已保存'
+      setTimeout(() => { saveBtn.textContent = '保存' }, 2000)
+    } catch {
+      saveBtn.textContent = '失败'
+      setTimeout(() => { saveBtn.textContent = '保存' }, 2000)
+    }
+  })
+
   updateIcons()
 }
 
@@ -147,6 +173,7 @@ function buildPageHTML(): string {
 <body>
   <div class="md-viewer">
     <div class="md-fab" id="md-fab">
+      <button id="save-btn" class="md-fab-btn" title="保存到阅读列表" style="width:auto;padding:0 10px;border-radius:14px;font-size:12px;">保存</button>
       <button id="skin-toggle" class="md-fab-btn" title="Change Skin"></button>
       <button id="theme-toggle" class="md-fab-btn" title="Toggle Theme"></button>
       <button id="settings-toggle" class="md-fab-btn" title="Settings">
