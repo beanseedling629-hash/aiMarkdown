@@ -53,6 +53,57 @@ turndown.addRule('table', {
   }
 })
 
+// Handle <picture> elements: extract best image URL from <source> or <img>
+turndown.addRule('picture', {
+  filter: 'picture',
+  replacement: (_content, node) => {
+    const el = node as HTMLElement
+    const img = el.querySelector('img')
+    const sources = el.querySelectorAll('source')
+
+    // Try to get the best URL from sources (pick largest/last srcset)
+    let bestUrl = ''
+    for (const source of sources) {
+      const srcset = source.getAttribute('srcset')
+      if (srcset) {
+        // Pick the last (usually largest) URL from srcset
+        const urls = srcset.split(',').map(s => s.trim().split(/\s+/)[0])
+        bestUrl = urls[urls.length - 1] || bestUrl
+      }
+    }
+
+    // Fallback to img src
+    if (!bestUrl && img) {
+      bestUrl = img.getAttribute('src') || img.getAttribute('data-src') || ''
+    }
+
+    if (!bestUrl) return ''
+
+    const alt = img?.getAttribute('alt') || ''
+    return `\n\n![${alt}](${bestUrl})\n\n`
+  }
+})
+
+// Enhanced img: use srcset if src is empty/tiny
+turndown.addRule('img-srcset', {
+  filter: (node) => {
+    if (node.nodeName !== 'IMG') return false
+    const src = (node as HTMLElement).getAttribute('src') || ''
+    const srcset = (node as HTMLElement).getAttribute('srcset') || ''
+    // Only apply if src is missing/tiny and srcset exists
+    return (!src || src.length < 10 || src.startsWith('data:')) && srcset.length > 0
+  },
+  replacement: (_content, node) => {
+    const el = node as HTMLElement
+    const srcset = el.getAttribute('srcset') || ''
+    const urls = srcset.split(',').map(s => s.trim().split(/\s+/)[0])
+    const bestUrl = urls[urls.length - 1] || ''
+    if (!bestUrl) return ''
+    const alt = el.getAttribute('alt') || ''
+    return `![${alt}](${bestUrl})`
+  }
+})
+
 // Keep <kbd>, <samp>, <var> inline
 turndown.addRule('inline-semantic', {
   filter: ['kbd', 'samp', 'var'],

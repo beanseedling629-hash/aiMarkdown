@@ -24,7 +24,7 @@ export function extractArticle(): ArticleResult | null {
     // Clone document to prevent Readability from mutating original DOM
     const doc = document.cloneNode(true) as Document
 
-    // Fix lazy-loaded images: restore data-src/data-original to src
+    // Fix lazy-loaded images: restore data-src/data-original/srcset to src
     const imgs = doc.querySelectorAll('img')
     imgs.forEach(img => {
       const lazySrc = img.getAttribute('data-src')
@@ -33,11 +33,20 @@ export function extractArticle(): ArticleResult | null {
         || img.getAttribute('data-lazy-src')
       if (lazySrc) {
         const currentSrc = img.getAttribute('src') || ''
-        // Replace if src is empty, a placeholder, data URI, or a tiny tracking pixel
         if (!currentSrc || currentSrc.length < 10 || currentSrc.includes('placeholder')
           || currentSrc.startsWith('data:') || currentSrc.includes('1x1')
           || currentSrc.includes('blank')) {
           img.setAttribute('src', lazySrc)
+        }
+      }
+      // If still no valid src, try srcset
+      const currentSrc = img.getAttribute('src') || ''
+      if ((!currentSrc || currentSrc.length < 10 || currentSrc.startsWith('data:')) && !lazySrc) {
+        const srcset = img.getAttribute('srcset') || ''
+        if (srcset) {
+          const urls = srcset.split(',').map(s => s.trim().split(/\s+/)[0])
+          const best = urls[urls.length - 1]
+          if (best) img.setAttribute('src', best)
         }
       }
     })
