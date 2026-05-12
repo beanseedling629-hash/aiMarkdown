@@ -53,29 +53,36 @@ turndown.addRule('table', {
   }
 })
 
-// Handle <picture> elements: extract best image URL from <source> or <img>
+// Handle <picture> elements: extract image URL from inner <img> or <source>
 turndown.addRule('picture', {
   filter: 'picture',
   replacement: (_content, node) => {
     const el = node as HTMLElement
     const img = el.querySelector('img')
-    const sources = el.querySelectorAll('source')
 
-    // Try to get the best URL from sources (pick largest/last srcset)
+    // Priority 1: use img src (extractor already fixed lazy-load attrs)
     let bestUrl = ''
-    for (const source of sources) {
-      const srcset = source.getAttribute('srcset')
-      if (srcset) {
-        // Pick the last (usually largest) URL from srcset
-        const urls = srcset.split(',').map(s => s.trim().split(/\s+/)[0])
-        bestUrl = urls[urls.length - 1] || bestUrl
+    if (img) {
+      bestUrl = img.getAttribute('src') || ''
+    }
+
+    // Priority 2: try source srcset
+    if (!bestUrl || bestUrl.length < 10 || bestUrl.startsWith('data:')) {
+      const sources = el.querySelectorAll('source')
+      for (const source of sources) {
+        const srcset = source.getAttribute('srcset')
+        if (srcset) {
+          const urls = srcset.split(',').map(s => s.trim().split(/\s+/)[0]).filter(u => u.startsWith('http'))
+          if (urls.length > 0) { bestUrl = urls[urls.length - 1]; break }
+        }
       }
     }
 
-    // Fallback to img src
-    if (!bestUrl && img) {
-      bestUrl = img.getAttribute('src') || img.getAttribute('data-src') || ''
-    }
+    if (!bestUrl || bestUrl.length < 10) return ''
+    const alt = img?.getAttribute('alt') || ''
+    return `\n\n![${alt}](${bestUrl})\n\n`
+  }
+})
 
     if (!bestUrl) return ''
 
@@ -96,11 +103,24 @@ turndown.addRule('img-srcset', {
   replacement: (_content, node) => {
     const el = node as HTMLElement
     const srcset = el.getAttribute('srcset') || ''
-    const urls = srcset.split(',').map(s => s.trim().split(/\s+/)[0])
+    const urls = srcset.split(',').map(s => s.trim().split(/\s+/)[0]).filter(u => u.startsWith('http'))
     const bestUrl = urls[urls.length - 1] || ''
     if (!bestUrl) return ''
     const alt = el.getAttribute('alt') || ''
     return `![${alt}](${bestUrl})`
+  }
+})
+
+// Fallback: ensure all <img> with valid src are converted to markdown
+// This overrides Turndown's default img handling to be more robust
+turndown.addRule('img-fallback', {
+  filter: 'img',
+  replacement: (_content, node) => {
+    const el = node as HTMLElement
+    const src = el.getAttribute('src') || ''
+    if (!src || src.length < 10 || src.startsWith('data:')) return ''
+    const alt = el.getAttribute('alt') || ''
+    return `![${alt}](${src})`
   }
 })
 
